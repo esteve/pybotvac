@@ -20,7 +20,7 @@ class UnsupportedDevice(Exception):
 class Robot:
     """Data and methods for interacting with a Neato Botvac Connected vacuum robot"""
 
-    def __init__(self, serial, secret, traits, access_token, name='',
+    def __init__(self, serial, secret, traits, auth_provider, name='',
                  endpoint='https://nucleo.neatocloud.com:4443'):
         """
         Initialize robot
@@ -34,14 +34,14 @@ class Robot:
         self.serial = serial
         self.secret = secret
         self.traits = traits
-        self.access_token = access_token
+        self.auth_provider = auth_provider
 
         self._url = '{endpoint}/vendors/neato/robots/{serial}/messages'.format(
             endpoint=re.sub(':\d+', '', endpoint),  # Remove port number
             serial=self.serial)
         self._headers = {'Accept': 'application/vnd.neato.nucleo.v1'}
         self._account_headers = dict(**self._headers)
-        self._account_headers['Authorization'] = 'Token token=%s' % self.access_token
+        self._account_headers.update(self.auth_provider.generate_headers())
 
         if self.service_version not in SUPPORTED_SERVICES:
             raise UnsupportedDevice("Version " + self.service_version + " of service houseCleaning is not known")
@@ -51,7 +51,7 @@ class Robot:
             self.refresh_persistent_maps
 
     def __str__(self):
-        return "Name: %s, Serial: %s, Secret: %s Traits: %s" % (self.name, self.serial, self.secret, self.traits)
+        return "Name: {}, Serial: {}, Secret: {} Traits: {}".format(self.name, self.serial, self.secret, self.traits)
 
     def _message(self, json):
         """
@@ -117,7 +117,7 @@ class Robot:
                     }
 
         return self._message(json)
-        
+
     def start_spot_cleaning(self, spot_width=400, spot_height=400):
         # Spot cleaning if applicable to version
         # spot_width: spot width in cm
@@ -185,19 +185,19 @@ class Robot:
 
     def locate(self):
         return self._message({'reqId': "1", 'cmd': "findMe"})
-    
+
     def get_general_info(self):
         return self._message({'reqId': "1", 'cmd': "getGeneralInfo"})
-    
+
     def get_local_stats(self):
         return self._message({'reqId': "1", 'cmd': "getLocalStats"})
-    
+
     def get_preferences(self):
         return self._message({'reqId': "1", 'cmd': "getPreferences"})
-    
+
     def get_map_boundaries(self):
         return self._message({'reqId': "1", 'cmd': "getMapBoundaries"})
-    
+
     def get_robot_info(self):
         return self._message({'reqId': "1", 'cmd': "getRobotInfo"})
 
